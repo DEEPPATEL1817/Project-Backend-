@@ -52,7 +52,7 @@ const userSchema = new Schema(
     },{timestamps:true}
 )
 
-// here we are using moogse plugin "Pre" to add something before it saves in DB ...so we are using it for encryption of password 
+// here we are using moogse plugin "Pre" it is a mongoose middleware. to add something before it saves in DB ...so we are using it for encryption of password 
 
 userSchema.pre("save", async function(next) {
     if(!this.isModified("password")) return next();
@@ -61,6 +61,7 @@ userSchema.pre("save", async function(next) {
     next()
 })
 
+// it is a custom method to compare compare the value of password 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password)
 
