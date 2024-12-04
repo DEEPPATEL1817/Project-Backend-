@@ -35,7 +35,7 @@ const registerUser = handler(async (req,res ) => {
 
     console.log("all requirements:",fullName,username,email,password)
 
-   const existingUser = User.findOne({
+   const existingUser = await User.findOne({
     $or:[{ username } , { email }]
    })
 
@@ -47,12 +47,23 @@ const registerUser = handler(async (req,res ) => {
 
 //    this files method is from multer
    const avatarLocalPath= req.files?.avatar[0]?.path;
+   
+   //    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+   // this above condition is may not work ..so we use alternate logic for it 
+   
+   let coverImageLocalPath;
+   if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+    coverImageLocalPath= req.files.coverImage[0].path
+   }
 
-   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+   console.log("Files received from Multer:", req.files);
+
 
    if (!avatarLocalPath) {
     throw new ApiError(400,"Avatar is required")
    }
+   console.log("Avatar local path:", avatarLocalPath);
+
 
 //    uploading avatar and coverimg on cloudinary
    const avatar = await uploadOnCloudinary(avatarLocalPath)
