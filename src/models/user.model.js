@@ -61,7 +61,7 @@ userSchema.pre("save", async function(next) {
     next()
 })
 
-// it is a custom method to compare compare the value of password 
+// it is a custom method to compare the value of password 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password)
 

@@ -16,13 +16,13 @@ import fs from "fs";
     const uploadOnCloudinary = async (localFilePath)=>{
         try {
             if(!localFilePath) return null
-
+            // if user give url or localfilepatth then we upload photo/vid on cloudinary
             const response = await cloudinary.uploader.upload(localFilePath,{
                 resource_type:"auto"
 
             })
             //file is uploaded succesfully
-            console.log("file is uploaded on cloudinary",response.url);
+            console.log("file is uploaded on cloudinary successfully",response.url);
             return response;
         } catch (error) {
             fs.unlinkSync(localFilePath) //remove the locally saved temperory file as the upload operation is failed
