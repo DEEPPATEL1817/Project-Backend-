@@ -31,9 +31,9 @@ import userRouter from "./routes/user.routes.js"
 
 
 //routes declaration
-app.use("/users",userRouter)
+app.use("/api/v1/users",userRouter)
 
-// eg:http://localhost:7000/users then it go to the userRouter and url is like http://localhost:7000/user/register and it run the controller of register
+// eg:http://localhost:7000/api/v1/users then it go to the userRouter and url is like http://localhost:7000/api/v1/users/register and it run the controller of register
 
 
 export {app}
