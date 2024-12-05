@@ -4,6 +4,26 @@ import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
+
+const generateAccessAndRefreshToken = async(userId) => {
+    try {
+        const user = await User.findById(userId);
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false })
+
+        return {accessToken , refreshToken}
+
+        //here we put false for validate before save because mongo db also ask for password without it ,it send error so we dont want moongose validate and avoid password schema  
+        
+    } catch (error) {
+        throw new ApiError(500,"Something went wrong while generating refresh and access token")
+    }
+}
+
+
 const registerUser = handler(async (req,res ) => {
 
     // steps: 
@@ -115,7 +135,7 @@ const loginUser = handler(async(req,res)=>{
         throw new ApiError(400,"username or password is required")
     }
 
-    const check = User.findOne({ 
+    const user = User.findOne({ 
         $or: [{ username } || { password }]
     })
 
@@ -123,7 +143,64 @@ const loginUser = handler(async(req,res)=>{
         throw new ApiError(404,"User does not exist")
     }
 
-    await client = 
+   const isPasswordValid = await user.isPasswordCorrect(password)
+    if(!isPasswordValid ){
+        throw new ApiError(404,"Password Incorrect")
+    }
+
+    // we are using access and refersh tokens multiple times so are making method so we call it when ever we need  
+
+    const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
+
+    const loggedInUser = await user.findById(user._id).select("-password -refreshToken")
+
+    //below to send cookies and this two options helps to do  server modifiable only not by frontend
+    
+    const options = {
+        httpOnly : true,
+        secure : true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user:loggedInUser,accessToken,refreshToken
+            },
+            "User Logged In Successfully"
+        )
+    )
+
 })
 
-export {registerUser , loginUser}
+const logoutUser = handler(async(req,res)=>{
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken:undefined
+            }
+        },
+        {
+            new:true
+        }
+    )
+
+    const options = {
+        httpOnly : true,
+        secure : true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken" , options)
+    .clearCookie("refreshToken" , options)
+    .json(new ApiResponse(200, {}, "User Logged Out"))
+
+})
+
+export { registerUser , loginUser , logoutUser }
