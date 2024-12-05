@@ -25,6 +25,7 @@ const uploadOnCloudinary = async (localFilePath)=>{
 
             fs.unlinkSync(localFilePath)
             return response;
+            // this unlinkSync is used to clear the localfilepath from local system 
         } 
         catch (error) {
             fs.unlinkSync(localFilePath) //remove the locally saved temperory file as the upload operation is failed
