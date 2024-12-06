@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import jwt from "jsonwebtoken"
 
 
 const generateAccessAndRefreshToken = async(userId) => {
@@ -131,28 +132,28 @@ const loginUser = handler(async(req,res)=>{
 
     const {username,email,password} = req.body;
 
-    if (!username || password) {
+    if (!username && !email) {
         throw new ApiError(400,"username or password is required")
     }
 
-    const user = User.findOne({ 
-        $or: [{ username } || { password }]
+    const user = await User.findOne({ 
+        $or: [{ username } , { email }]
     })
 
-    if(!username ){
+    if(!user ){
         throw new ApiError(404,"User does not exist")
     }
 
    const isPasswordValid = await user.isPasswordCorrect(password)
     if(!isPasswordValid ){
-        throw new ApiError(404,"Password Incorrect")
+        throw new ApiError(401,"Password Incorrect")
     }
 
     // we are using access and refersh tokens multiple times so are making method so we call it when ever we need  
 
     const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
 
-    const loggedInUser = await user.findById(user._id).select("-password -refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     //below to send cookies and this two options helps to do  server modifiable only not by frontend
     
@@ -163,8 +164,8 @@ const loginUser = handler(async(req,res)=>{
 
     return res
     .status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken , options)
     .json(
         new ApiResponse(
             200,
@@ -203,4 +204,51 @@ const logoutUser = handler(async(req,res)=>{
 
 })
 
-export { registerUser , loginUser , logoutUser }
+// this refreshAccessToken --> to remain login continously we match refresh token again and again .everytime after access token expires..so user will remain login for longer period of time
+const refreshAccessToken = handler(async(req,res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    if(!incomingRefreshToken){
+        throw new ApiError(401 , "unauthorized request")
+    }
+
+    try {
+        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+    
+        const user = await User.findById(decodedToken?._id)
+        if(!user){
+            throw new ApiError(401 , "Invalid refresh token")
+        }
+    
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401,"Refresh token is expired or used")
+        }
+    
+        const options = {
+            httpOnly : true,
+            secure: true
+        }
+    
+        const {accessToken , newRefreshToken}=await generateAccessAndRefreshToken(user._id)
+    
+        return res
+        .status(200)
+        .cookie("accessToken" , accessToken, options)
+        .cookie("refreshToken" , newRefreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    accessToken , newRefreshToken
+                },
+                "Access Token refreshed"
+            )
+        )
+    } catch (error) {
+        throw new ApiError (401,error?.message || "Invalid refresh token")
+    }
+    
+
+})
+
+export { registerUser , loginUser , logoutUser , refreshAccessToken }
