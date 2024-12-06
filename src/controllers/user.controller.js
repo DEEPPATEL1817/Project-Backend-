@@ -102,7 +102,7 @@ const registerUser = handler(async (req,res ) => {
         coverImage: coverImage?.url || "",
         email,
         password,
-        username: username.toLowerCase()
+        username: username.toLowerCase(),
     })
 
     // checking in db ...user is created or not and select method is used to select two fields which we dont want to send 
@@ -285,7 +285,7 @@ const getCurrentUser = handler(async(req,res) => {
 
     return res
     .status(200)
-    .json(200, req.user, "current user fetched successfully")
+    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
 })
 
 const updateAccountDetails = handler( async( req, res) => {
@@ -313,33 +313,47 @@ const updateAccountDetails = handler( async( req, res) => {
 })
 
 // want to update avatar 
-const updateUserAvatar = handler(async (req,res) => {
-    const avatarLocalPath=req.file?.path;
+const updateUserAvatar = handler(async (req, res) => {
+    const avatarLocalPath = req.file?.path;
 
     if (!avatarLocalPath) {
-        throw new ApiErrorError(400,"Avatar file is missing");
-    }
-    const avatar = await uploadOnCloudinary (avatarLocalPath)
-
-    if(!avatar){
-        throw new ApiError(400,"Error while uploading avatar")
+        throw new ApiError(400, "Avatar file is missing");
     }
 
-    const user=await User.findByIdAndUpdate(
+    // Upload new avatar to Cloudinary
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (!avatar.url) {
+        throw new ApiError(400, "Error while uploading avatar");
+    }
+
+    // Find the user and get the old avatar URL
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    const oldAvatarUrl = user.avatar;
+
+    // Update the user's avatar in the database
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
-            {
-                $set:{
-                    avatar:avatar.url
-                }
-            },
-            {new:true}
-        ).select("-password")
-        
-        return res
+        { 
+            $set:
+            { 
+            avatar: avatar.url
+        }
+    },
+        { new: true } 
+    ).select("-password");
+
+    // Delete the old avatar from Cloudinary
+    await deleteOldAvatarFromCloudinary(oldAvatarUrl);
+
+    // Return the updated user
+    return res
         .status(200)
-        .json(200,user,"Avatar is changed")
-    
-})
+        .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
+});
+
 
 // want to update coverImage 
 const updateUserCoverImage = handler(async (req,res) => {
@@ -366,7 +380,8 @@ const updateUserCoverImage = handler(async (req,res) => {
         
         return res
         .status(200)
-        .json(200,user,"Cover Image is changed")
+        .json( new ApiResponse(200, user, "Avatar updated successfully")
+    )
     
 })
 
