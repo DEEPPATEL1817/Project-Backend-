@@ -392,6 +392,7 @@ const getUserChannelProfile = handler (async(req,res) => {
         throw new ApiError(400, "username is missing")
     }
 
+    //lookup is used in aggregation pipeline to perform join operation btw two collections
     const channel = await User.aggregate([
         {
             $match : {
@@ -423,7 +424,7 @@ const getUserChannelProfile = handler (async(req,res) => {
                     $size: "subscribersTo"
                 },
                 isSubscribed: {
-                    $count:{
+                    $cond:{
                         if: {$in:[req.user?._id,"$subscribers.subscriber"]},
                         then:true,
                         else:false
@@ -467,5 +468,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserCoverImage, 
-    updateUserAvatar
+    updateUserAvatar,
+    getUserChannelProfile
 }
