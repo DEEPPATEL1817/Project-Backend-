@@ -65,7 +65,7 @@ const registerUser = handler(async (req,res ) => {
    console.log("existing user bro",existingUser);
 
    if (!existingUser) {
-    throw new ApiError (409,"User with email and username is already exist");
+    throw new ApiError (409,"User with email and username already exist");
    }
 
 //    this files method is from multer
@@ -184,9 +184,14 @@ const logoutUser = handler(async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken:undefined
+            $unset: {
+                refreshToken:1,
             }
+
+            // or 
+            // $ set: {
+            //     refreshToken:undefined
+            // }
         },
         {
             new:true
@@ -469,7 +474,7 @@ const getWatchHistory = handler (async(req,res) => {
     },
     {
         $lookup: {
-            from: "Videos",
+            from: "videos",
             localField : "watchHistory",
             foreignField : "_id",
             as: "watchHistory",
@@ -510,6 +515,18 @@ const getWatchHistory = handler (async(req,res) => {
     )
 })
 
+
+// const uploadVideo = handler(async(req,res) => {
+
+//     const videoLocalPath = req.file?.path;
+
+//     const video =await uploadOnCloudinary(videoLocalPath);
+
+    
+
+
+// })
+
 export { 
     registerUser ,
     loginUser , 
@@ -521,5 +538,6 @@ export {
     updateUserCoverImage, 
     updateUserAvatar,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    
 }

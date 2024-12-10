@@ -4,12 +4,8 @@ import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import {refreshAccessToken} from "../controllers/user.controller.js"
 import { changeCurrentPassword } from "../controllers/user.controller.js";
-import { getCurrentUser } from "../controllers/user.controller.js";
-import { updateAccountDetails } from "../controllers/user.controller.js";
 import { updateUserAvatar } from "../controllers/user.controller.js";
-import { updateUserCoverImage } from "../controllers/user.controller.js";
-import { getWatchHistory } from "../controllers/user.controller.js";
-import { getUserChannelProfile } from "../controllers/user.controller.js";
+
 //here before using registerUser controller we are using middleware before user save thing on server
 
 const userRouter = Router()
