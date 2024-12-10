@@ -360,7 +360,7 @@ const updateUserAvatar = handler(async (req, res) => {
         .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
 });
 
-
+            
 // want to update coverImage 
 const updateUserCoverImage = handler(async (req,res) => {
     const coverImageLocalPath=req.file?.path;
